@@ -92,20 +92,22 @@ def main():
             person_boxes = boxes[labels == 0]
             person_scores = scores[labels == 0]
 
-            # Filter out detections with confidence score below 0.5
-            high_confidence_indices = scores >= 0.5
-            person_boxes = boxes[high_confidence_indices]  
-            person_scores = scores[high_confidence_indices]
+            # Check if people are detected
+            if person_scores.size > 0:
+                # Filter out detections with confidence score below 0.5
+                high_confidence_indices = person_scores >= 0.5  # Apply the threshold to person scores
+                person_boxes = person_boxes[high_confidence_indices]  
+                person_scores = person_scores[high_confidence_indices]
 
             # Tracking objects
-            current_ids, tracked_ids, tracked_counter = track_objects(person_boxes, previous_boxes)
+            current_ids, tracked_ids, tracked_counter = track_objects(person_boxes, previous_boxes, tracked_counter)
             
             # Update the previous bounding boxes
             previous_boxes = person_boxes
         
         else:
             # Tracking objects
-            current_ids, tracked_ids, tracked_counter = track_objects(previous_boxes, previous_boxes)
+            current_ids, tracked_ids, tracked_counter = track_objects(previous_boxes, previous_boxes, tracked_counter)
 
             # Update the previous bounding boxes
             person_boxes = previous_boxes
