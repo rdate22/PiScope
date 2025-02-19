@@ -10,7 +10,7 @@ def index():
 
 def gen(camera):
     while True:
-        frame = camera.get_frame()
+        frame, x, y, name = camera.get_frame()
         if frame is None:
             continue
             

@@ -135,8 +135,19 @@ class VideoCamera(object):
             
             # Display confidence score rounded to 4 decimal places
             cv2.putText(frame, f"Confidence: {person_scores[i]:.4f}", (int(x1), int(y1)-10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+
+        # Find the biggest bounding box by area
+        if person_boxes:
+            areas = [(box[2] - box[0]) * (box[3] - box[1]) for box in person_boxes]
+            max_area_index = np.argmax(areas)
+            biggest_box = person_boxes[max_area_index]
+            biggest_box_x = biggest_box[0]  # x1 of the biggest box
+            biggest_box_y = biggest_box[1]  # y1 of the biggest box
+        else:
+            biggest_box_x = None
+            biggest_box_y = None
         
         ret, jpeg = cv2.imencode('.jpg', frame)
-        return jpeg.tobytes()
+        return jpeg.tobytes(), biggest_box_x, biggest_box_y, "Gayrick"
     
     
