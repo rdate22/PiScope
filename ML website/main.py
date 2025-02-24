@@ -1,5 +1,5 @@
 from flask import Flask, render_template, Response
-from camera import VideoCamera
+from camera import VideoCamerapip install torch torchvision torchaudiog
 
 app = Flask(__name__)
 
