@@ -12,6 +12,7 @@ CORS(app)
 
 UPLOAD_FOLDER = 'Dataset/'
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'bmp', 'tiff'}
+camera = VideoCamera()
 
 # Function to check the allowed file extensions
 def allowed_file(filename):
