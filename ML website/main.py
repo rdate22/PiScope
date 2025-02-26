@@ -25,15 +25,22 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def send_coordinates():
-    try:
-        ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
-        print("Serial connection established with STM32")
-    except serial.SerialException as e:
-        print("Could not open serial port:", e)
-        return
+    """ Continuously send coordinates to STM32 without blocking Flask """
+    ser = None
 
-    camera = VideoCamera()
     while True:
+        # Attempt to establish serial connection if not already connected
+        if ser is None:
+            try:
+                ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)  # CHANGE PORT AS NEEDED
+                print("Serial connection established with STM32")
+            except serial.SerialException as e:
+                print("Could not open serial port:", e)
+                ser = None  # Ensure we retry later
+                time.sleep(2)  # Wait before retrying
+                continue  # Skip this loop iteration
+
+        camera = VideoCamera()
         frame, x, y, name = camera.get_frame()
         if frame is None:
             continue
@@ -44,13 +51,15 @@ def send_coordinates():
             print("Sent:", message.strip())
         except Exception as e:
             print("Error sending data:", e)
+            ser.close()
+            ser = None  # Reset connection on error
 
         time.sleep(0.1)
 
 if __name__ == '__main__':
-    # Start Flask in a separate thread (WITHOUT debug=True)
+    # Start Flask in a separate thread
     flask_thread = threading.Thread(target=app.run, kwargs={"host": "0.0.0.0", "port": 5001}, daemon=True)
     flask_thread.start()
-    
-    # Run serial communication in the main thread
+
+    # Start serial communication without blocking Flask
     send_coordinates()
