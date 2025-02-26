@@ -27,12 +27,12 @@ def video_feed():
 
 # Send coordinates to STM32 via serial port
 def send_coordinates():
-    try:
-        # Update the serial port to the one that's connected to STM32F4
-        ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)  # CHANGE THIS PORT TO YOUR SYSTEM
-    except serial.SerialException as e:
-        print("Could not open serial port:", e)
-        return
+    # try:
+    #     # Update the serial port to the one that's connected to STM32F4
+    #     ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)  # CHANGE THIS PORT TO YOUR SYSTEM
+    # except serial.SerialException as e:
+    #     print("Could not open serial port:", e)
+    #     return
 
     camera = VideoCamera()
     while True:
