@@ -29,36 +29,36 @@ def video_feed():
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='5001', debug=True)
 
-# Send coordinates to STM32 via serial port (port needs to be changed according to YOUR LOCAL MACHINE)
-def send_coordinates():
-    try:
-        # Update the serial port to the one thats connected to STM32F4
-        ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1) # THIS MUST BE CHANGED /dev/tty.usbmodem141203
-    except serial.SerialException as e:
-        print("Could not open serial port:", e)
-        return
+# # Send coordinates to STM32 via serial port (port needs to be changed according to YOUR LOCAL MACHINE)
+# def send_coordinates():
+#     try:
+#         # Update the serial port to the one thats connected to STM32F4
+#         ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1) # THIS MUST BE CHANGED /dev/tty.usbmodem141203
+#     except serial.SerialException as e:
+#         print("Could not open serial port:", e)
+#         return
 
-    camera = VideoCamera()
-    while True:
-        # Get a frame and its associated detection coordinates
-        frame, x, y, name = camera.get_frame()
-        if frame is None:
-            continue
+#     camera = VideoCamera()
+#     while True:
+#         # Get a frame and its associated detection coordinates
+#         frame, x, y, name = camera.get_frame()
+#         if frame is None:
+#             continue
 
-        # Construct a message. For example, send a CSV string: x,y,name
-        message = f"{x},{y},{name}\n"
-        try:
-            ser.write(message.encode())
-            print("Sent:", message.strip()) # Debugging - Confirmed sending to STM32
-        except Exception as e:
-            print("Error sending data:", e)
+#         # Construct a message. For example, send a CSV string: x,y,name
+#         message = f"{x},{y},{name}\n"
+#         try:
+#             ser.write(message.encode())
+#             print("Sent:", message.strip()) # Debugging - Confirmed sending to STM32
+#         except Exception as e:
+#             print("Error sending data:", e)
         
-        # Delay between transmissions to match your desired update rate
-        time.sleep(0.1)
+#         # Delay between transmissions to match your desired update rate
+#         time.sleep(0.1)
 
-if __name__ == '__main__':
-    # Start the coordinate sending thread
-    coord_thread = threading.Thread(target=send_coordinates, daemon=True)
-    coord_thread.start()
+# if __name__ == '__main__':
+#     # Start the coordinate sending thread
+#     coord_thread = threading.Thread(target=send_coordinates, daemon=True)
+#     coord_thread.start()
     
-    app.run(host='0.0.0.0', port=5001, debug=True)
+#     app.run(host='0.0.0.0', port=5001, debug=True)
