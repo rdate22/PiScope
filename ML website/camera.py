@@ -8,7 +8,7 @@ class VideoCamera(object):
         self.cap = cv2.VideoCapture(0)
 
         # Load the pre-trained YOLOv5 model 
-        self.model = YOLO("yolov5n.pt")  
+        self.model = YOLO("yolov5nu.pt")  
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model.to(self.device)
 
