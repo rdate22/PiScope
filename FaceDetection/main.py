@@ -1,0 +1,116 @@
+import threading
+import time
+import serial
+from flask import Flask, request, jsonify, render_template, Response
+from camera import VideoCamera  # ensure VideoCamera is defined in camera.py
+import os
+from werkzeug.utils import secure_filename
+
+
+app = Flask(__name__)
+
+UPLOAD_FOLDER = 'Dataset/'
+ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'bmp', 'tiff'}
+
+# Function to check the allowed file extensions
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Create user-specific folder if it doesn't exist
+def create_user_folder(user_name):
+    user_folder = os.path.join(BASE_UPLOAD_FOLDER, user_name)
+    os.makedirs(user_folder, exist_ok=True)
+    return user_folder
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+def gen(camera):
+    while True:
+        frame, x, y, name = camera.get_frame()
+        if frame is None:
+            continue
+        
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame +
+               b'\r\n\r\n')
+
+@app.route('/add_user', methods=['POST'])
+def add_user():
+    # Get the userName from the form data
+    user_name = request.form.get('userName')
+
+    if not user_name:
+        return jsonify({'error': 'User name is required'}), 400
+
+    # Create a folder specific to the user
+    user_folder = create_user_folder(user_name)
+
+    # Check if the form contains files
+    if 'photos' not in request.files:
+        return jsonify({'error': 'No files part'}), 400
+
+    # Get the files from the form data
+    files = request.files.getlist('photos')
+
+    # List to store file paths
+    file_paths = []
+
+    # Handle and save each file
+    for file in files:
+        if file and allowed_file(file.filename):
+            # Secure the filename and create the path
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(user_folder, filename)
+            file.save(file_path)
+            file_paths.append(file_path)
+        else:
+            return jsonify({'error': f'Invalid file type for {file.filename}'}), 400
+
+    # Return success message with file paths
+    return jsonify({
+        'message': 'User added successfully!',
+        'user_name': user_name,
+        'uploaded_files': file_paths
+    })
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(gen(VideoCamera()),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+# Send coordinates to STM32 via serial port (port needs to be changed according to YOUR LOCAL MACHINE)
+def send_coordinates():
+    try:
+        # Update the serial port to the one thats connected to STM32F4
+        ser = serial.Serial('/dev/tty.usbmodem141203', 115200, timeout=1) # THIS MUST BE CHANGED
+    except serial.SerialException as e:
+        print("Could not open serial port:", e)
+        return
+
+    camera = VideoCamera()
+    while True:
+        # Get a frame and its associated detection coordinates
+        frame, x, y, name = camera.get_frame()
+        if frame is None:
+            continue
+
+        # Construct a message. For example, send a CSV string: x,y,name
+        message = f"{x},{y},{name}\n"
+        try:
+            ser.write(message.encode())
+            print("Sent:", message.strip()) # Debugging - Confirmed sending to STM32
+        except Exception as e:
+            print("Error sending data:", e)
+        
+        # Delay between transmissions to match your desired update rate
+        time.sleep(0.1)
+
+if __name__ == '__main__':
+    # Start the coordinate sending thread
+    coord_thread = threading.Thread(target=send_coordinates, daemon=True)
+    coord_thread.start()
+    
+    app.run(host='0.0.0.0', port=5001, debug=True)

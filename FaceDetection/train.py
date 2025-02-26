@@ -3,12 +3,13 @@ import cv2
 import numpy as np
 import os
 import pickle
-from sklearn.neighbors import KNeighborsClassifier 
+from sklearn.decomposition import PCA
+from sklearn.neighbors import BallTree
 
 # Load the pre-trained face detector and face recognition model from dlib
 detector = dlib.get_frontal_face_detector()
-sp = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')  # Download from dlib's model repo
-face_rec_model = dlib.face_recognition_model_v1('dlib_face_recognition_resnet_model_v1.dat')  # Download from dlib's model repo
+sp = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
+face_rec_model = dlib.face_recognition_model_v1('dlib_face_recognition_resnet_model_v1.dat')
 
 # Function to extract face embedding using dlib
 def get_face_embedding(image):
@@ -20,23 +21,22 @@ def get_face_embedding(image):
 
     embeddings = []
     for face in faces:
-        landmarks = sp(gray, face)  # Detect landmarks
+        landmarks = sp(gray, face)
         face_descriptor = face_rec_model.compute_face_descriptor(image, landmarks)
         embeddings.append(np.array(face_descriptor))
     
     return embeddings
 
-# Directory where the dataset is stored (organized by person subdirectories)
-data_dir = 'dataset'  # Folder containing subdirectories for each person
+# Directory where the dataset is stored
+data_dir = 'Dataset'
 faces = []
-person_names = []  # Store names of people (instead of encoded labels)
+person_names = []
 
 # Loop through each person's folder (subdirectory) to collect images and labels
 for person_folder in os.listdir(data_dir):
     person_folder_path = os.path.join(data_dir, person_folder)
     
     if os.path.isdir(person_folder_path):
-        # Load all images of the person
         for img_name in os.listdir(person_folder_path):
             img_path = os.path.join(person_folder_path, img_name)
             img = cv2.imread(img_path)
@@ -45,23 +45,39 @@ for person_folder in os.listdir(data_dir):
             if not img_name.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.tiff')):
                 continue
 
-            embeddings = get_face_embedding(img)  # Get face embeddings for the image
+            embeddings = get_face_embedding(img)
 
             if embeddings:
                 for embedding in embeddings:
                     faces.append(embedding)
-                    person_names.append(person_folder)  # Label the embedding with the person's name
+                    person_names.append(person_folder)
 
-# Train a KNN classifier on the face embeddings
-knn = KNeighborsClassifier(n_neighbors=1)  # k=1 for nearest neighbor classifier
-knn.fit(faces, person_names)
+# Apply PCA to reduce dimensionality of face embeddings
+pca = PCA(n_components=30)  # Reduce to 30 components, adjust as needed
+faces_pca = pca.fit_transform(faces)
 
-# Save the trained KNN model for future use
-with open('knn_model.pkl', 'wb') as f:
-    pickle.dump(knn, f)
+confidence_threshold = 0.5
+pruned_faces = []
+pruned_person_names = []
+
+for face, name in zip(faces_pca, person_names):
+    distance = np.linalg.norm(face)  # Use L2 norm as a simple measure of confidence
+    if distance < confidence_threshold:
+        pruned_faces.append(face)
+        pruned_person_names.append(name)
+
+# Train a KNN classifier on the reduced face embeddings
+ball_tree = BallTree(pruned_faces)
+
+# Save the trained KNN model and PCA model for future use
+with open('ball_tree.pkl', 'wb') as f:
+    pickle.dump(ball_tree, f)
+
+with open('pca_model.pkl', 'wb') as f:
+    pickle.dump(pca, f)
 
 # Save the face embeddings and names for future inference
 with open('face_embeddings.pkl', 'wb') as file:
     pickle.dump((faces, person_names), file)
 
-print("Training complete. KNN model and embeddings saved.")
+print("Training complete. Ball Tree model, PCA, and embeddings saved.")
