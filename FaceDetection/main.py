@@ -4,9 +4,10 @@ from flask import Flask, request, jsonify, render_template, Response
 from camera import VideoCamera  # ensure VideoCamera is defined in camera.py
 import os
 from werkzeug.utils import secure_filename
-
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 UPLOAD_FOLDER = 'Dataset/'
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'bmp', 'tiff'}
