@@ -29,7 +29,7 @@ def video_feed():
 def send_coordinates():
     try:
         # Update the serial port to the one thats connected to STM32F4
-        ser = serial.Serial('/dev/tty.usbmodem141203', 115200, timeout=1) # THIS MUST BE CHANGED
+        ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1) # THIS MUST BE CHANGED /dev/tty.usbmodem141203
     except serial.SerialException as e:
         print("Could not open serial port:", e)
         return
