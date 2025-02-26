@@ -81,7 +81,7 @@ class VideoCamera(object):
 
         ret, frame = self.cap.read()
         if not ret or frame is None:
-            return None # Return None if the frame is invalid
+            return None, None, None, None # Return None if the frame is invalid
 
         # Default values for person_boxes and person_scores
         person_boxes = []
