@@ -1,0 +1,17 @@
+/* LiveFeed.css */
+
+/* Container styling for the live feed page */
+.live-feed-container {
+    margin-top: 2rem;
+    text-align: center;
+  }
+  
+  /* Styling for the video feed image */
+  .live-feed-video {
+    width: 100%;
+    max-width: 640px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  

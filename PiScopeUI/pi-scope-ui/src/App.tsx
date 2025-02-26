@@ -2,6 +2,8 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
 import './App.css';
 import { NavBar } from './components/NavBar';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LiveFeed from './pages/LiveFeed'; // Import your LiveFeed page
 import {
   Box,
   Button,
@@ -34,9 +36,8 @@ const slides: string[] = [
 
 /**
  * CameraCapture component:
- * - Uses the browser's getUserMedia API to show a live camera preview.
- * - When the user clicks "Capture Photo", a snapshot is taken and passed back
- *   as a base64 data URL via the onCapture callback.
+ * - Uses getUserMedia API to show a live camera preview.
+ * - On clicking "Capture Photo", it takes a snapshot and passes it as a base64 data URL.
  */
 interface CameraCaptureProps {
   onCapture: (imageDataUrl: string) => void;
@@ -58,7 +59,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture }) => {
     }
     startCamera();
 
-    // Cleanup: stop all tracks when component unmounts
+    // Cleanup: stop all video tracks when component unmounts
     return () => {
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
@@ -67,7 +68,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture }) => {
     };
   }, []);
 
-  // Capture a frame from the video feed and return it as a data URL
+  // Capture a frame and pass it back as a data URL
   const handleCapture = () => {
     if (videoRef.current) {
       const canvas = document.createElement('canvas');
@@ -94,9 +95,9 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture }) => {
 
 /**
  * AddUserDialog component:
- * - Renders a dialog allowing the user to either upload photos or capture them.
- * - Also includes a text field to enter the user’s name.
- * - On confirmation, it sends the photos and user name to the backend via a POST request.
+ * - Renders a dialog for the user to either upload photos or capture them.
+ * - Also includes a text field for entering the user's name.
+ * - On confirmation, it creates a FormData payload and sends it via axios to the /add_user endpoint.
  */
 interface AddUserDialogProps {
   open: boolean;
@@ -109,24 +110,24 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose }) => {
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
   const [userName, setUserName] = useState("");
 
-  // Switch between Upload Photos and Capture Photos tabs
+  // Switch between "Upload Photos" and "Capture Photos" tabs
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
-  // Handle file selection for uploading photos
+  // Handle file input change
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setUploadedFiles(e.target.files);
     }
   };
 
-  // Callback to add a captured image (data URL) to the state
+  // Add a captured image (data URL) to state
   const handleCapture = (imageDataUrl: string) => {
     setCapturedImages(prev => [...prev, imageDataUrl]);
   };
 
-  // Utility: Convert a data URL (base64) to a Blob object
+  // Utility: Convert a data URL to a Blob
   const dataURLtoBlob = (dataurl: string): Blob => {
     const arr = dataurl.split(',');
     const mimeMatch = arr[0].match(/:(.*?);/);
@@ -143,12 +144,8 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose }) => {
 
   /**
    * handleConfirm:
-   * - Validates that photos are provided.
-   * - Creates a FormData object with the userName and photos.
-   * - Sends a POST request via axios to the Flask endpoint (/add_user).
-   * - The backend endpoint should create a folder in FaceDetection/Dataset with the userName
-   *   and save the photos. It should also trigger running train.py.
-   * - Note: react-py is not used here because we require file system access on the server.
+   * - Validates input and photos.
+   * - Creates a FormData object and sends a POST request to /add_user.
    */
   const handleConfirm = async () => {
     if (!userName) {
@@ -179,11 +176,8 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose }) => {
     }
 
     try {
-      // POST the FormData to the Flask endpoint; this endpoint must be implemented on the backend
       const response = await axios.post("http://localhost:5001/add_user", formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
       console.log("User added successfully:", response.data);
       alert("User added successfully!");
@@ -192,7 +186,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose }) => {
       alert("Error adding user. Please try again.");
     }
 
-    // Reset dialog state and close the dialog after submission
+    // Reset dialog state and close the dialog
     setUserName("");
     setUploadedFiles(null);
     setCapturedImages([]);
@@ -259,17 +253,13 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose }) => {
 };
 
 /**
- * App Component:
- * - Renders the NavBar at the top.
- * - Displays a landing page with a manual slideshow that explains the steps for adding a user.
- * - Includes "Previous" and "Next" buttons for controlling the slideshow.
- * - Provides an "Add User" button that opens the AddUserDialog.
+ * LandingPage component encapsulates your current landing page UI.
+ * This component will be rendered at the "/" route.
  */
-function App() {
+const LandingPage: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState<number>(0);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
 
-  // Handlers to navigate the slideshow manually
   const handlePrevSlide = () => {
     setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
   };
@@ -287,40 +277,56 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <NavBar />
-      <Box sx={{ my: 4, textAlign: 'center' }}>
-        <Typography variant="h3" component="h1" gutterBottom sx={{ fontFamily: 'Georgia, serif' }}>
-          Welcome to SentriLock
-        </Typography>
-        <Typography variant="h6" component="p" gutterBottom>
-          Follow these steps to add a new user to your SentriLock device:
-        </Typography>
+    <Box sx={{ my: 4, textAlign: 'center' }}>
+      <Typography variant="h3" component="h1" gutterBottom sx={{ fontFamily: 'Georgia, serif' }}>
+        Welcome to SentriLock
+      </Typography>
+      <Typography variant="h6" component="p" gutterBottom>
+        Follow these steps to add a new user to your SentriLock device:
+      </Typography>
 
-        {/* Slideshow with manual navigation */}
-        <Card sx={{ maxWidth: 640, margin: '0 auto', my: 4, padding: 2 }}>
-          <CardContent>
-            <Typography variant="h5" component="div" sx={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
-              {slides[currentSlide]}
-            </Typography>
-          </CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', px: 2, pb: 2 }}>
-            <IconButton onClick={handlePrevSlide}>
-              <ArrowBackIosIcon />
-            </IconButton>
-            <IconButton onClick={handleNextSlide}>
-              <ArrowForwardIosIcon />
-            </IconButton>
-          </Box>
-        </Card>
+      {/* Slideshow with manual navigation */}
+      <Card sx={{ maxWidth: 640, margin: '0 auto', my: 4, padding: 2 }}>
+        <CardContent>
+          <Typography variant="h5" component="div" sx={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>
+            {slides[currentSlide]}
+          </Typography>
+        </CardContent>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', px: 2, pb: 2 }}>
+          <IconButton onClick={handlePrevSlide}>
+            <ArrowBackIosIcon />
+          </IconButton>
+          <IconButton onClick={handleNextSlide}>
+            <ArrowForwardIosIcon />
+          </IconButton>
+        </Box>
+      </Card>
 
-        <Button variant="contained" color="primary" onClick={handleAddUserClick}>
-          Add User
-        </Button>
-      </Box>
+      <Button variant="contained" color="primary" onClick={handleAddUserClick}>
+        Add User
+      </Button>
 
       <AddUserDialog open={dialogOpen} onClose={handleDialogClose} />
-    </div>
+    </Box>
+  );
+};
+
+/**
+ * Main App component:
+ * - Wraps the application in a Router.
+ * - Defines two routes:
+ *    "/" renders the LandingPage.
+ *    "/live-feed" renders the LiveFeed page.
+ */
+function App() {
+  return (
+    <Router>
+      <NavBar />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/live-feed" element={<LiveFeed />} />
+      </Routes>
+    </Router>
   );
 }
 
