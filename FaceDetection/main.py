@@ -64,11 +64,11 @@ def gen():
 # Serial connection helper function for def send_coordinates
 def get_serial_connection():
     try:
-        ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)  # Change port if needed
+        ser = serial.Serial('/dev/serial0', 115200, timeout=1)  # Change port if needed (/dev/ttyACM0)
         print("Serial connection established with STM32")
         return ser
     except serial.SerialException as e:
-        print(f"Could not open serial port: {e}")
+        print(f"Could not open UART port: {e}")
         return None
 
 # Continuously send coordinates to STM32 via serial port, implements threading pause
@@ -78,7 +78,6 @@ def send_coordinates():
     while True:
         SEND_SIGNAL.wait() # pauses thread until signal is set (name/face detected)
         if ser is None:
-            print("attempt to send serial info")
             ser = get_serial_connection()
             if ser is None:
                 time.sleep(1) # Avoid cpu usage if needed
