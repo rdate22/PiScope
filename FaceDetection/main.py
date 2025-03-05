@@ -13,6 +13,7 @@ CORS(app)
 
 UPLOAD_FOLDER = 'Dataset/'
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'bmp', 'tiff'}
+SEND_SIGNAL = threading.Event()
 
 # Initialize a single global camera instance
 camera = VideoCamera()
@@ -25,13 +26,16 @@ def update_frame():
     global latest_frame_data
     while True:
         frame, x, y, name = camera.get_frame()
+        SEND_SIGNAL.clear() # reset thread event
         if frame is not None:
             latest_frame_data["frame"] = frame
             latest_frame_data["x"] = x
             latest_frame_data["y"] = y
             latest_frame_data["name"] = name
-            # print(f"New frame data: x={x}, y={y}, name={name}") # Debugging statement
-            # time.sleep(1) # Avoid CPU overload if needed
+            if name is not None: # allow coordinate sending if name/face is detected
+                SEND_SIGNAL.set()
+            # print(f"New frame data: x={x}, y={y}, name={name}, {SEND_SIGNAL}") # Debugging statement
+            time.sleep(1) # Avoid CPU overload if needed
 
 # Check allowed file extensions
 def allowed_file(filename):
@@ -67,11 +71,14 @@ def get_serial_connection():
         print(f"Could not open serial port: {e}")
         return None
 
-# Continuously send coordinates to STM32 via serial port
+# Continuously send coordinates to STM32 via serial port, implements threading pause
+# if face is not detected to avoid unecessary cpu usage
 def send_coordinates():
     ser = None
     while True:
+        SEND_SIGNAL.wait() # pauses thread until signal is set (name/face detected)
         if ser is None:
+            print("attempt to send serial info")
             ser = get_serial_connection()
             if ser is None:
                 time.sleep(1) # Avoid cpu usage if needed
@@ -89,6 +96,7 @@ def send_coordinates():
             print("Error sending data:", e)
             ser.close()
             ser = None  # Reset connection on error
+        SEND_SIGNAL.clear()
 
 @app.route('/video_feed')
 def video_feed():
