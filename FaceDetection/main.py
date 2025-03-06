@@ -24,19 +24,27 @@ latest_frame_data = {"frame": None, "x": None, "y": None, "name": None}
 # Infinite loop to capture frames & update the global variable
 def update_frame():
     global latest_frame_data
+    face_detected = False # State condition
+
     while True:
         frame, x, y, name = camera.get_frame()
-        SEND_SIGNAL.clear() # reset thread event
         if frame is not None:
             latest_frame_data["frame"] = frame
             latest_frame_data["x"] = x
             latest_frame_data["y"] = y
             latest_frame_data["name"] = name
-            if name is not None: # allow coordinate sending if name/face is detected
-                SEND_SIGNAL.set()
-            # print(f"New frame data: x={x}, y={y}, name={name}, {SEND_SIGNAL}") # Debugging statement
-            time.sleep(1) # Avoid CPU overload if needed
+            # print(f"New frame data: x={x}, y={y}, name={name}, {face_detected}") # Debugging statement
 
+            if name:
+                if not face_detected:     # Call SEND_SIGNAL.set() if not already set
+                    SEND_SIGNAL.set()
+                    face_detected = True  # Update state
+            elif face_detected:           # Call SEND_SIGNAL.clear() if it was previously set
+                SEND_SIGNAL.clear()
+                face_detected = False     # Update state
+
+        # time.sleep(0.1) # Avoid CPU overload but decreases livefeed efficiency
+        
 # Check allowed file extensions
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -56,10 +64,10 @@ def gen():
     while True:
         if latest_frame_data["frame"] is None:
             continue
-        
+            
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + latest_frame_data["frame"] +
-               b'\r\n\r\n')
+            b'Content-Type: image/jpeg\r\n\r\n' + latest_frame_data["frame"] +
+            b'\r\n\r\n')
 
 # Serial connection helper function for def send_coordinates
 def get_serial_connection():
@@ -76,11 +84,11 @@ def get_serial_connection():
 def send_coordinates():
     ser = None
     while True:
-        # SEND_SIGNAL.wait() # pauses thread until signal is set (name/face detected)
+        SEND_SIGNAL.wait() # pauses thread until signal is set (name/face detected)
         if ser is None:
             ser = get_serial_connection()
             if ser is None:
-                time.sleep(1) # Avoid cpu usage if needed
+                time.sleep(0.1) # Avoid cpu usage if needed
                 continue
 
         if latest_frame_data["frame"] is None:
@@ -141,3 +149,4 @@ if __name__ == '__main__':
 
     # Run Flask in the main thread
     app.run(host="0.0.0.0", port=8000)
+    # app.run(host="0.0.0.0", port=8000, threaded=True, debug=False)
