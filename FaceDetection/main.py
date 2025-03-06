@@ -76,7 +76,7 @@ def get_serial_connection():
 def send_coordinates():
     ser = None
     while True:
-        SEND_SIGNAL.wait() # pauses thread until signal is set (name/face detected)
+        # SEND_SIGNAL.wait() # pauses thread until signal is set (name/face detected)
         if ser is None:
             ser = get_serial_connection()
             if ser is None:
