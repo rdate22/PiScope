@@ -84,7 +84,7 @@ def get_serial_connection():
 def send_coordinates():
     ser = None
     while True:
-        SEND_SIGNAL.wait() # pauses thread until signal is set (name/face detected)
+        #SEND_SIGNAL.wait() # pauses thread until signal is set (name/face detected)
         if ser is None:
             ser = get_serial_connection()
             if ser is None:
@@ -105,7 +105,7 @@ def send_coordinates():
             print("Error sending data:", e)
             ser.close()
             ser = None  # Reset connection on error
-        SEND_SIGNAL.clear()
+        #SEND_SIGNAL.clear()
 
 @app.route('/video_feed')
 def video_feed():
