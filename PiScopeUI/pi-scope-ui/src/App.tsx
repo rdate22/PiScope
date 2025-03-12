@@ -176,7 +176,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose }) => {
     }
 
     try {
-      const response = await axios.post("http://localhost:5001/add_user", formData, {
+      const response = await axios.post("http://localhost:8000/add_user", formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       console.log("User added successfully:", response.data);

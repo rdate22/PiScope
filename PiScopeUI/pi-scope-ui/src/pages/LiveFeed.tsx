@@ -18,7 +18,7 @@ const LiveFeed: React.FC = () => {
       {/* Video Feed */}
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
         <img 
-          src="http://localhost:5001/video_feed"  // Make sure this URL matches your backend configuration
+          src="http://localhost:8000/video_feed"  // Make sure this URL matches your backend configuration
           alt="Live Feed" 
           className="live-feed-video"
         />
