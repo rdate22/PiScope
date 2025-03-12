@@ -55,6 +55,7 @@ class VideoCamera(object):
                 self.pca = pickle.load(f)
             with open('face_embeddings.pkl', 'rb') as file:
                 _, self.person_names = pickle.load(file)
+                self.modTime = os.path.getmtime('ball_tree.pkl')
         
         # Checking camera for proper initialization
         if not self.cap:
