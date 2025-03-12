@@ -95,10 +95,10 @@ def send_coordinates():
             time.sleep(0.1)  # Avoid busy waiting if needed
             continue
         
-        message = f"{latest_frame_data['x']},{latest_frame_data['y']},{latest_frame_data['name']}\n"
-        # message = f"???""
+        message = f"{latest_frame_data['x']} {latest_frame_data['y']} {latest_frame_data['name']}"
+        message = f"{message:<24}\n"
         try:
-            ser.write(message.encode())
+            ser.write(message.encode(encoding="ascii"))
             time.sleep(0.25)
             print(f"Sent to STM32: {message.strip()}") # Debugging statement
         except Exception as e:
