@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import dlib
 import pickle
+import os
 import time
 
 class VideoCamera(object):
@@ -21,6 +22,7 @@ class VideoCamera(object):
         self.face_rec_model = dlib.face_recognition_model_v1('dlib_face_recognition_resnet_model_v1.dat')
         self.sp = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
 
+        self.modTime = os.path.getmtime('ball_tree.pkl')
         # Load the BallTree model and PCA model
         with open('ball_tree.pkl', 'rb') as f:
             self.ball_tree = pickle.load(f)
@@ -46,6 +48,13 @@ class VideoCamera(object):
         label = None
         biggest_box_x = self.width / 2
         biggest_box_y = self.height / 2
+        if self.modTime != os.path.getmtime('ball_tree.pkl'):
+            with open('ball_tree.pkl', 'rb') as f:
+                self.ball_tree = pickle.load(f)
+            with open('pca_model.pkl', 'rb') as f:
+                self.pca = pickle.load(f)
+            with open('face_embeddings.pkl', 'rb') as file:
+                _, self.person_names = pickle.load(file)
         
         # Checking camera for proper initialization
         if not self.cap:
