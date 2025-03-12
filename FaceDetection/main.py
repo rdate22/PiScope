@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from flask_cors import CORS
 import serial
 import serial.tools.list_ports
+import subprocess #Needed for calling train.py
 
 app = Flask(__name__)
 CORS(app)
@@ -132,11 +133,26 @@ def add_user():
         else:
             return jsonify({'error': f'Invalid file type for {file.filename}'}), 400
 
-    return jsonify({
-        'message': 'User added successfully!',
-        'user_name': user_name,
-        'uploaded_files': file_paths
-    })
+        #Start training the model simultaniously on a different thread after
+        #user has uploaded their images
+        new_user_training_thread = threading.Thread(target = train_model, daemon=True)
+        new_user_training_thread.start()
+
+        return jsonify({
+            'message': 'User added successfully!',
+            'user_name': user_name,
+            'uploaded_files': file_paths
+        })
+    
+
+
+def train_model():
+    try: 
+        subprocess.run(["python", "train.py"], check=True)
+        print("Training complete")
+    except subprocess.CalledProcessError as e:
+        print(f"Training failed: {e}")
+
 
 if __name__ == '__main__':
     # Start background thread for sending coordinates to STM32f4
