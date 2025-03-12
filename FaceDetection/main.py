@@ -36,10 +36,9 @@ def update_frame():
             latest_frame_data["name"] = name
             # print(f"New frame data: x={x}, y={y}, name={name}, {face_detected}") # Debugging statement
 
-            if name:
-                if not face_detected:     # Call SEND_SIGNAL.set() if not already set
-                    SEND_SIGNAL.set()
-                    face_detected = True  # Update state
+            if name and name.strip():
+                SEND_SIGNAL.set()
+                face_detected = True  # Update state
             elif face_detected:           # Call SEND_SIGNAL.clear() if it was previously set
                 SEND_SIGNAL.clear()
                 face_detected = False     # Update state
@@ -97,8 +96,10 @@ def send_coordinates():
             continue
         
         message = f"{latest_frame_data['x']},{latest_frame_data['y']},{latest_frame_data['name']}\n"
+        # message = f"???""
         try:
             ser.write(message.encode())
+            time.sleep(0.25)
             print(f"Sent to STM32: {message.strip()}") # Debugging statement
         except Exception as e:
             print("Error sending data:", e)
